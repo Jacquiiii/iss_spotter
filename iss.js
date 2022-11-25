@@ -1,5 +1,3 @@
-// It will contain most of the logic for fetching the data from each API endpoint.
-
 /* ----------------------------------------------------------------------- */
 
 const request = require('request');
@@ -10,16 +8,18 @@ const fetchMyIP = function(callback) {
 
     if (error) {
       callback(error, null);
+      return;
     }
 
     if (response.statusCode !== 200) {
       const msg = `Status Code ${response.statusCode} when fetching IP. Response: ${body}`;
       callback(Error(msg), null);
+      return;
     }
 
     const ip = JSON.parse(body).ip;
     callback(null, ip);
-    
+
   });
 
 };
@@ -32,6 +32,13 @@ const fetchCoordsByIP = (ip, callback) => {
 
     if (error) {
       callback(error, null);
+      return;
+    }
+
+    if (response.statusCode !== 200) {
+      const msg = `Status Code ${response.statusCode} when fetching IP. Response: ${body}`;
+      callback(Error(msg), null);
+      return;
     }
 
     const parsedBody = JSON.parse(body);
@@ -45,22 +52,70 @@ const fetchCoordsByIP = (ip, callback) => {
     const data = {};
     data['latitude'] = parsedBody.latitude;
     data['longitude'] = parsedBody.longitude;
-    
+
     callback(null, data);
 
   });
-  
+
+};
+
+/* ----------------------------------------------------------------------- */
+
+const fetchISSFlyOverTimes = (coords, callback) => {
+
+  request(`https://iss-flyover.herokuapp.com/json/?lat=${coords.latitude}&lon=${coords.longitude}`, (error, response, body) => {
+
+    if (error) {
+      callback(error, null);
+      return;
+    }
+
+    if (response.statusCode !== 200) {
+      const msg = `Status Code ${response.statusCode} when fetching IP. Response: ${body}`;
+      callback(Error(msg), null);
+      return;
+    }
+
+    const data = JSON.parse(body).response;
+
+    callback(null, data);
+
+  });
+
 };
 
 /* ----------------------------------------------------------------------- */
 
 
+const nextISSTimesForMyLocation = (callback) => {
+  fetchMyIP((error, ip) => {
+    if (error) {
+      console.log("It didn't work!", error);
+      return;
+    }
 
+    fetchCoordsByIP('207.6.119.134', (error, coords) => {
+      if (error) {
+        console.log("It didn't work!", error);
+        return;
+      }
 
+      fetchISSFlyOverTimes({ latitude: 48.4284207, longitude: -123.3656444 }, (error, coords) => {
+        if (error) {
+          console.log("It didn't work!", error);
+          return;
+        }
+
+        callback(null, coords);
+      });
+    });
+  });
+};
 
 /* ----------------------------------------------------------------------- */
 
-module.exports = { fetchMyIP, fetchCoordsByIP };
+
+module.exports = { fetchMyIP, fetchCoordsByIP, fetchISSFlyOverTimes, nextISSTimesForMyLocation };
 
 
 
